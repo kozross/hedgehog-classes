@@ -1,10 +1,19 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE CPP #-}
+
+#if MIN_VERSION_base(4,12,0)
+{-# LANGUAGE QuantifiedConstraints #-}
+#endif
 
 module Hedgehog.Classes.Alternative (alternativeLaws) where
 
 import Control.Applicative (Alternative(..))
+
+#if MIN_VERSION_base(4,12,0)
+#else
+import Data.Functor.Classes (Eq1, Show1)
+#endif
 
 import Hedgehog
 import Hedgehog.Classes.Common
@@ -14,20 +23,34 @@ import Hedgehog.Classes.Common
 -- [__Left Identity__]: @'empty' '<|>' a@ ≡ @a@
 -- [__Right Identity__]: @a '<|>' 'empty'@ ≡ @a@
 -- [__Associativity__]: @a '<|>' (b '<|>' c)@ ≡ @(a '<|>' b) '<|>' c@
+#if MIN_VERSION_base(4,12,0)
 alternativeLaws ::
   ( Alternative f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Laws
+#else
+alternativeLaws ::
+  ( Alternative f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Laws
+#endif
 alternativeLaws gen = Laws "Alternative"
   [ ("Left Identity", alternativeLeftIdentity gen)
   , ("Right Identity", alternativeRightIdentity gen)
   , ("Associativity", alternativeAssociativity gen)
   ]
 
+#if MIN_VERSION_base(4,12,0)
 type AlternativeProp f =
   ( Alternative f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Property
+#else
+type AlternativeProp f =
+  ( Alternative f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Property
+#endif
 
 alternativeLeftIdentity :: forall f. AlternativeProp f
 alternativeLeftIdentity fgen = property $ do

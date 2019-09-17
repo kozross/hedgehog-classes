@@ -1,10 +1,19 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE CPP #-}
+
+#if MIN_VERSION_base(4,12,0)
+{-# LANGUAGE QuantifiedConstraints #-}
+#endif
 
 module Hedgehog.Classes.Applicative (applicativeLaws) where
 
 import Control.Applicative (Applicative(..))
+
+#if MIN_VERSION_base(4,12,0)
+#else
+import Data.Functor.Classes (Eq1, Show1)
+#endif
 
 import Hedgehog
 import Hedgehog.Classes.Common
@@ -17,10 +26,17 @@ import Hedgehog.Classes.Common
 -- [__Interchange__]: @u '<*>' 'pure' y@ ≡ @'pure' ('$' y) '<*>' u@
 -- [__LiftA2 1__]: @'liftA2' 'id' f x@ ≡ @f '<*>' x@
 -- [__LiftA2 2__]: @'liftA2' f x y@ ≡ @f '<$>' x '<*>' y@
+#if MIN_VERSION_base(4,12,0)
 applicativeLaws ::
   ( Applicative f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Laws
+#else
+applicativeLaws ::
+  ( Applicative f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Laws
+#endif
 applicativeLaws gen = Laws "Applicative"
   [ ("Identity", applicativeIdentity gen)
   , ("Composition", applicativeComposition gen)
@@ -30,10 +46,17 @@ applicativeLaws gen = Laws "Applicative"
   , ("LiftA2 Part 2", applicativeLiftA2_2 gen) 
   ]
 
+#if MIN_VERSION_base(4,12,0)
 type ApplicativeProp f =
   ( Applicative f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Property
+#else
+type ApplicativeProp f =
+  ( Applicative f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Property
+#endif
 
 applicativeIdentity :: forall f. ApplicativeProp f
 applicativeIdentity fgen = property $ do
