@@ -13,7 +13,7 @@ import Hedgehog.Classes.Common
 
 #if MIN_VERSION_base(4,12,0)
 #else
-import Data.Functor.Classes (Eq2, Show2)
+import Data.Functor.Classes (Eq2, Show1(..), Show2(..))
 #endif
 
 import Data.Bitraversable (Bitraversable(..))
@@ -62,6 +62,7 @@ type BitraversableProp f =
 #endif
 
 bitraversableNaturality :: forall f. BitraversableProp f
+#if MIN_VERSION_base(4,12,0)
 bitraversableNaturality fgen = property $ do
   x <- forAll $ fgen genSmallInteger genSmallInteger
   let t = apTrans; f = func4; g = func4
@@ -78,6 +79,25 @@ bitraversableNaturality fgen = property $ do
         , lawContextReduced = reduced lhs rhs 
         }
   heqCtx1 lhs rhs ctx  
+#else
+bitraversableNaturality fgen = property $ do
+  x <- forAllWith show2 $ fgen genSmallInteger genSmallInteger
+  let t = apTrans; f = func4; g = func4
+  let lhs = bitraverse (t . f) (t . g) x
+  let rhs = t (bitraverse f g x)
+  let ctx = contextualise $ LawContext
+        { lawContextLawName = "Naturality", lawContextLawBody = "bitraverse (t . f) (t . g)" `congruency` "t . bitraverse f g, for every applicative transformation t"
+        , lawContextTcName = "Bitraversable", lawContextTcProp =
+            let showX = show2 x;
+            in lawWhere
+                 [ "bitraverse (t . f) (t . g) $ x" `congruency` "t . bitraverse f g $ x, for every applicative transformation t, where"
+                 , "x = " ++ showX
+                 ]
+        , lawContextReduced = reducedWith (($ "") . liftShowsPrec (liftShowsPrec2 showsPrec showList showsPrec showList)
+                                                                  (liftShowList2 showsPrec showList showsPrec showList) 0) lhs rhs
+        }
+  heqCtx1 lhs rhs ctx
+#endif
 
 bitraversableIdentity :: forall f. BitraversableProp f
 bitraversableIdentity fgen = property $ do

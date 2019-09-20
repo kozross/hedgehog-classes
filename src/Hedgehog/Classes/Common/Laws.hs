@@ -14,6 +14,10 @@ module Hedgehog.Classes.Common.Laws
 
   , contextualise
   , reduced
+#if MIN_VERSION_base(4,12,0)
+#else
+  , reducedWith
+#endif
   , lawWhere
   , congruency
   , implies
@@ -87,6 +91,12 @@ data LawContext = LawContext
 
 reduced :: Show a => a -> a -> String
 reduced lhs rhs = show lhs ++ congruent ++ show rhs
+
+#if MIN_VERSION_base(4,12,0)
+#else
+reducedWith :: (a -> String) -> a -> a -> String
+reducedWith f lhs rhs = f lhs ++ congruent ++ f rhs
+#endif
 
 -- | Turn a 'LawContext' into a 'Context'.
 contextualise :: LawContext -> Context

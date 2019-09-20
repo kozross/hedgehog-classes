@@ -69,16 +69,19 @@ categoryRightIdentity :: forall f.
   , forall x y. (Eq x, Eq y) => Eq (f x y)
   , forall x y. (Show x, Show y) => Show (f x y)
   ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Property
+categoryRightIdentity fgen = property $ do
+  x <- forAll $ fgen genSmallInteger genSmallInteger
+  (x . id) `heq2` x
 #else
 categoryRightIdentity :: forall f.
   ( Category f
   , Eq2 f
   , Show2 f
   ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Property
-#endif
 categoryRightIdentity fgen = property $ do
-  x <- forAll $ fgen genSmallInteger genSmallInteger
+  x <- forAllWith show2 $ fgen genSmallInteger genSmallInteger
   (x . id) `heq2` x
+#endif
 
 #if MIN_VERSION_base(4,12,0)
 categoryLeftIdentity :: forall f.
@@ -86,16 +89,19 @@ categoryLeftIdentity :: forall f.
   , forall x y. (Eq x, Eq y) => Eq (f x y)
   , forall x y. (Show x, Show y) => Show (f x y)
   ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Property
-#else
-categoryLeftIdentity :: forall f.
-  ( Category f
-  , Eq2 f
-  , Show2 f
-  ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Property
-#endif
 categoryLeftIdentity fgen = property $ do
   x <- forAll $ fgen genSmallInteger genSmallInteger
   (id . x) `heq2` x
+#else
+categoryLeftIdentity :: forall f.
+  ( Category f
+  , Eq2 f
+  , Show2 f
+  ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Property
+categoryLeftIdentity fgen = property $ do
+  x <- forAllWith show2 $ fgen genSmallInteger genSmallInteger
+  (id . x) `heq2` x
+#endif
 
 #if MIN_VERSION_base(4,12,0)
 categoryAssociativity :: forall f.
@@ -103,18 +109,23 @@ categoryAssociativity :: forall f.
   , forall x y. (Eq x, Eq y) => Eq (f x y)
   , forall x y. (Show x, Show y) => Show (f x y)
   ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Property
-#else
-categoryAssociativity :: forall f.
-  ( Category f
-  , Eq2 f
-  , Show2 f
-  ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Property
-#endif
 categoryAssociativity fgen = property $ do
   f <- forAll $ fgen genSmallInteger genSmallInteger
   g <- forAll $ fgen genSmallInteger genSmallInteger 
   h <- forAll $ fgen genSmallInteger genSmallInteger 
   (f . (g . h)) `heq2` ((f . g) . h)
+#else
+categoryAssociativity :: forall f.
+  ( Category f
+  , Eq2 f
+  , Show2 f
+  ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Property
+categoryAssociativity fgen = property $ do
+  f <- forAllWith show2 $ fgen genSmallInteger genSmallInteger
+  g <- forAllWith show2 $ fgen genSmallInteger genSmallInteger
+  h <- forAllWith show2 $ fgen genSmallInteger genSmallInteger
+  (f . (g . h)) `heq2` ((f . g) . h)
+#endif
 
 #if MIN_VERSION_base(4,12,0)
 categoryCommutativity :: forall f.
@@ -122,14 +133,19 @@ categoryCommutativity :: forall f.
   , forall x y. (Eq x, Eq y) => Eq (f x y)
   , forall x y. (Show x, Show y) => Show (f x y)
   ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Property
+categoryCommutativity fgen = property $ do
+  f <- forAll $ fgen genSmallInteger genSmallInteger
+  g <- forAll $ fgen genSmallInteger genSmallInteger
+  (f . g) `heq2` (g . f)
 #else
 categoryCommutativity :: forall f.
   ( Category f
   , Eq2 f
   , Show2 f
   ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Property
-#endif
 categoryCommutativity fgen = property $ do
-  f <- forAll $ fgen genSmallInteger genSmallInteger
-  g <- forAll $ fgen genSmallInteger genSmallInteger
+  f <- forAllWith show2 $ fgen genSmallInteger genSmallInteger
+  g <- forAllWith show2 $ fgen genSmallInteger genSmallInteger
   (f . g) `heq2` (g . f)
+#endif
+
