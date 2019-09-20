@@ -2,6 +2,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE CPP #-}
 
 module Hedgehog.Classes.Common.Laws
   ( Laws(..)
@@ -26,7 +27,12 @@ module Hedgehog.Classes.Common.Laws
 
 import Control.Monad.IO.Class (MonadIO(liftIO))
 import Data.Char (isSpace)
+#if MIN_VERSION_base(4,12,0)
 import Data.Monoid (All(..), Ap(..))
+#else
+import Data.Monoid (All(..))
+import Control.Applicative (liftA2)
+#endif
 import Hedgehog (Gen)
 import Hedgehog.Classes.Common.Property (Context(..))
 import Hedgehog.Internal.Property (Property(..))
@@ -244,6 +250,18 @@ lawsCheckManyInternal xs = do
     Bad  -> do
       putStrLn "One or more tests failed"
       exitFailure
+
+#if MIN_VERSION_base(4,12,0)
+#else
+newtype Ap f a = Ap { getAp :: f a }
+
+instance (Applicative f, Semigroup a) => Semigroup (Ap f a) where
+  (Ap x) <> (Ap y) = Ap $ liftA2 (<>) x y
+
+instance (Applicative f, Monoid a) => Monoid (Ap f a) where
+  mempty = Ap $ pure mempty
+
+#endif
 
 foldMapA :: (Foldable t, Monoid m, Applicative f) => (a -> f m) -> t a -> f m
 foldMapA f = getAp . foldMap (Ap . f)

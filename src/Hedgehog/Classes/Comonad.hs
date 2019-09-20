@@ -1,7 +1,10 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RankNTypes #-}
+
+#if MIN_VERSION_base(4,12,0)
+{-# LANGUAGE QuantifiedConstraints #-}
+#endif
 
 #ifndef HAVE_COMONAD
 
@@ -12,6 +15,11 @@ module Hedgehog.Classes.Comonad () where
 module Hedgehog.Classes.Comonad (comonadLaws) where
 
 import Control.Comonad
+
+#if MIN_VERSION_base(4,12,0)
+#else
+import Data.Functor.Classes (Eq1, Show1)
+#endif
 
 import Hedgehog
 import Hedgehog.Classes.Common
@@ -31,10 +39,17 @@ import Hedgehog.Classes.Common
 -- [__Duplicate/Extend id Identity__]: @'duplicate' ≡ 'extend' 'id'@
 -- [__Fmap/Extend Extract__]: @'fmap' f ≡ 'extend' (f '.' 'extract')@
 -- [__Fmap/LiftW Isomorphism__]: @'fmap' ≡ 'liftW'@
+#if MIN_VERSION_base(4,12,0)
 comonadLaws ::
   ( Comonad f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Laws
+#else
+comonadLaws ::
+  ( Comonad f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Laws
+#endif
 comonadLaws gen = Laws "Comonad"
   [ ("Extend/Extract Identity", extendExtractIdentity gen)
   , ("Extract/Extend", extractExtend gen)
@@ -51,10 +66,17 @@ comonadLaws gen = Laws "Comonad"
   , ("Fmap/LiftW Isomorphism", fmapLiftW gen)
   ]
 
+#if MIN_VERSION_base(4,12,0)
 type ComonadProp f =
   ( Comonad f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Property
+#else
+type ComonadProp f =
+  ( Comonad f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Property
+#endif
 
 extendExtractIdentity :: forall f. ComonadProp f
 extendExtractIdentity fgen = property $ do

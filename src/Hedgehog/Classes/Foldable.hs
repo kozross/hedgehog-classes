@@ -1,12 +1,21 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE CPP #-}
+
+#if MIN_VERSION_base(4,12,0)
+{-# LANGUAGE QuantifiedConstraints #-}
+#endif
 
 module Hedgehog.Classes.Foldable (foldableLaws) where
 
 import Hedgehog
 import Hedgehog.Classes.Common
+
+#if MIN_VERSION_base(4,12,0)
+#else
+import Data.Functor.Classes (Eq1, Show1)
+#endif
 
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Exception (ErrorCall(..), try, evaluate)
@@ -28,10 +37,17 @@ import qualified Data.Foldable as Foldable
 -- [__Length__]: @'Foldable.length' ≡ 'getSum' '.' 'Foldable.foldMap' ('const' ('Sum' 1))@
 --
 -- This additionally tests that the user's implementations of 'Foldable.foldr'' and 'Foldable.foldl'' are strict in their accumulators.
+#if MIN_VERSION_base(4,12,0)
 foldableLaws ::
   ( Foldable f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Laws
+#else
+foldableLaws ::
+  ( Foldable f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Laws
+#endif
 foldableLaws gen = Laws "Foldable"
   [ ("fold", foldableFold gen)
   , ("foldMap", foldableFoldMap gen)
@@ -46,10 +62,17 @@ foldableLaws gen = Laws "Foldable"
   , ("length", foldableLength gen)
   ]
 
+#if MIN_VERSION_base(4,12,0)
 foldableFold ::
   ( Foldable f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Property
+#else
+foldableFold ::
+  ( Foldable f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Property
+#endif
 foldableFold fgen = property $ do
   a <- forAll $ fgen $ genVerySmallList genSmallInteger
   let lhs = Foldable.fold a
@@ -69,10 +92,17 @@ foldableFold fgen = property $ do
 
   heqCtx lhs rhs ctx
 
+#if MIN_VERSION_base(4,12,0)
 foldableFoldMap ::
   ( Foldable f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Property
+#else
+foldableFoldMap ::
+  ( Foldable f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Property
+#endif
 foldableFoldMap fgen = property $ do
   a <- forAll $ fgen genSmallInteger
   e <- forAll genQuadraticEquation
@@ -95,10 +125,17 @@ foldableFoldMap fgen = property $ do
         } 
   heqCtx lhs rhs ctx
 
+#if MIN_VERSION_base(4,12,0)
 foldableFoldr ::
   ( Foldable f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Property
+#else
+foldableFoldr ::
+  ( Foldable f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Property
+#endif
 foldableFoldr fgen = property $ do
   e <- forAll genLinearEquationTwo
   z <- forAll genSmallInteger
@@ -123,11 +160,18 @@ foldableFoldr fgen = property $ do
         , lawContextReduced = reduced lhs rhs 
         } 
   heqCtx lhs rhs ctx
- 
+
+#if MIN_VERSION_base(4,12,0) 
 foldableFoldl ::
   ( Foldable f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Property
+#else
+foldableFoldl ::
+  ( Foldable f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Property
+#endif
 foldableFoldl fgen = property $ do
   e <- forAll genLinearEquationTwo
   z <- forAll genSmallInteger
@@ -156,10 +200,17 @@ foldableFoldl fgen = property $ do
 ctxNotStrict :: String -> Context
 ctxNotStrict str = Context $ "Your implementation of " ++ str ++ " is not strict."
 
+#if MIN_VERSION_base(4,12,0)
 foldableFoldr' ::
   ( Foldable f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Property
+#else
+foldableFoldr' ::
+  ( Foldable f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Property
+#endif
 foldableFoldr' fgen = property $ do
   xs <- forAll $ fgen (genBottom genSmallInteger)
   let f :: Bottom Integer -> Integer -> Integer
@@ -200,10 +251,17 @@ foldableFoldr' fgen = property $ do
         c1 -> c1
   heqCtx lhs rhs ctx
 
+#if MIN_VERSION_base(4,12,0)
 foldableFoldl' ::
   ( Foldable f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Property
+#else
+foldableFoldl' ::
+  ( Foldable f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Property
+#endif
 foldableFoldl' fgen = property $ do
   xs <- forAll $ fgen (genBottom genSmallInteger)
   let f :: Integer -> Bottom Integer -> Integer
@@ -243,11 +301,18 @@ foldableFoldl' fgen = property $ do
           c2 -> c2
         c1 -> c1
   heqCtx lhs rhs ctx
- 
+
+#if MIN_VERSION_base(4,12,0) 
 foldableFoldl1 ::
   ( Foldable f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Property
+#else
+foldableFoldl1 ::
+  ( Foldable f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Property
+#endif
 foldableFoldl1 fgen = property $ do
   e <- forAll genLinearEquationTwo
   t <- forAll $ fgen genSmallInteger
@@ -277,10 +342,17 @@ foldableFoldl1 fgen = property $ do
             }
       in heqCtx lhs rhs ctx
 
+#if MIN_VERSION_base(4,12,0)
 foldableFoldr1 ::
   ( Foldable f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Property
+#else
+foldableFoldr1 ::
+  ( Foldable f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Property
+#endif
 foldableFoldr1 fgen = property $ do
   e <- forAll genLinearEquationTwo
   t <- forAll $ fgen genSmallInteger
@@ -310,10 +382,17 @@ foldableFoldr1 fgen = property $ do
             }
       in heqCtx lhs rhs ctx
 
+#if MIN_VERSION_base(4,12,0)
 foldableToList ::
   ( Foldable f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Property
+#else
+foldableToList ::
+  ( Foldable f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Property
+#endif
 foldableToList fgen = property $ do
   t <- forAll $ fgen genSmallInteger
   let lhs = Foldable.toList t
@@ -332,10 +411,17 @@ foldableToList fgen = property $ do
         } 
   heqCtx lhs rhs ctx
 
+#if MIN_VERSION_base(4,12,0)
 foldableNull ::
   ( Foldable f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Property
+#else
+foldableNull ::
+  ( Foldable f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Property
+#endif
 foldableNull fgen = property $ do
   t <- forAll $ fgen genSmallInteger
   let lhs = Foldable.null t
@@ -354,10 +440,17 @@ foldableNull fgen = property $ do
         } 
   heqCtx lhs rhs ctx  
 
+#if MIN_VERSION_base(4,12,0)
 foldableLength ::
   ( Foldable f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Property
+#else
+foldableLength ::
+  ( Foldable f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Property
+#endif
 foldableLength fgen = property $ do
   t <- forAll $ fgen genSmallInteger
   let lhs = Foldable.length t

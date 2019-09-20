@@ -1,11 +1,20 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE CPP #-}
+
+#if MIN_VERSION_base(4,12,0)
 {-# LANGUAGE QuantifiedConstraints #-}
+#endif
 
 module Hedgehog.Classes.Bifoldable (bifoldableLaws, bifoldableFunctorLaws) where
 
 import Hedgehog
 import Hedgehog.Classes.Common
+
+#if MIN_VERSION_base(4,12,0)
+#else
+import Data.Functor.Classes (Eq2, Show2)
+#endif
 
 import Data.Bifoldable (Bifoldable(..))
 import Data.Bifunctor (Bifunctor(..))
@@ -16,11 +25,19 @@ import Data.Monoid (Endo(..), Sum(..), Product(..))
 -- [__Identity__]: @'bifold'@ ≡ @'bifoldMap' 'id' 'id'@
 -- [__FoldMap__]: @'bifoldMap' f g@ ≡ @'bifoldr' ('mappend' '.' f) ('mappend' '.' g) 'mempty'@
 -- [__Foldr__]: @'bifoldr' f g z t@ ≡ @'appEndo' ('bifoldMap' ('Endo' '.' f) ('Endo' '.' g) t) z@
+#if MIN_VERSION_base(4,12,0)
 bifoldableLaws :: forall f.
   ( Bifoldable f
   , forall x y. (Eq x, Eq y) => Eq (f x y)
   , forall x y. (Show x, Show y) => Show (f x y)
   ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Laws
+#else
+bifoldableLaws :: forall f.
+  ( Bifoldable f
+  , Eq2 f
+  , Show2 f
+  ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Laws
+#endif
 bifoldableLaws gen = Laws "Bifoldable"
   [ ("Identity", bifoldableIdentity gen)
   , ("FoldMap", bifoldableFoldMap gen)
@@ -31,21 +48,37 @@ bifoldableLaws gen = Laws "Bifoldable"
 --
 -- [__Composition__]: @'bifoldMap' f g@ ≡ @'bifold' '.' 'bimap' f g@
 -- [__FoldMap__]: @'bifoldMap' f g '.' 'bimap' h i@ ≡ @'bifoldMap' (f '.' h) (g '.' i)@
+#if MIN_VERSION_base(4,12,0)
 bifoldableFunctorLaws :: forall f.
   ( Bifoldable f, Bifunctor f
   , forall x y. (Eq x, Eq y) => Eq (f x y)
   , forall x y. (Show x, Show y) => Show (f x y)
   ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Laws
+#else
+bifoldableFunctorLaws :: forall f.
+  ( Bifoldable f, Bifunctor f
+  , Eq2 f
+  , Show2 f
+  ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Laws
+#endif
 bifoldableFunctorLaws gen = Laws "Bifoldable/Bifunctor"
   [ ("Composition", bifoldableFunctorComposition gen)
   , ("FoldMap", bifoldableFunctorFoldMap gen)
   ]
 
+#if MIN_VERSION_base(4,12,0)
 type BifoldableProp f =
   ( Bifoldable f
   , forall x y. (Eq x, Eq y) => Eq (f x y)
   , forall x y. (Show x, Show y) => Show (f x y)
   ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Property
+#else
+type BifoldableProp f =
+  ( Bifoldable f
+  , Eq2 f
+  , Show2 f
+  ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Property
+#endif
 
 bifoldableIdentity :: forall f. BifoldableProp f
 bifoldableIdentity fgen = property $ do
@@ -114,11 +147,19 @@ bifoldableFoldr fgen = property $ do
         }
   heqCtx lhs rhs ctx
 
+#if MIN_VERSION_base(4,12,0)
 type BifoldableFunctorProp f =
   ( Bifoldable f, Bifunctor f
   , forall x y. (Eq x, Eq y) => Eq (f x y)
   , forall x y. (Show x, Show y) => Show (f x y)
   ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Property
+#else
+type BifoldableFunctorProp f =
+  ( Bifoldable f, Bifunctor f
+  , Eq2 f
+  , Show2 f
+  ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Property
+#endif
 
 bifoldableFunctorComposition :: forall f. BifoldableFunctorProp f
 bifoldableFunctorComposition fgen = property $ do

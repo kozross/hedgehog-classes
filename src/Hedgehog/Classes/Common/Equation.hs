@@ -1,9 +1,12 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE ViewPatterns #-}
+
+#if MIN_VERSION_base(4,12,0)
+{-# LANGUAGE QuantifiedConstraints #-}
+#endif
 
 module Hedgehog.Classes.Common.Equation
   ( LinearEquation(..), runLinearEquation, genLinearEquation
@@ -24,6 +27,11 @@ import qualified Hedgehog.Range as Range
 import qualified Data.List as List
 
 import Data.Monoid (Endo(..))
+
+#if MIN_VERSION_base(4,12,0)
+#else
+import Data.Functor.Classes (Eq1(..), Show1(..))
+#endif
 
 #ifdef HAVE_COMONAD
 import Control.Comonad
@@ -74,6 +82,7 @@ genLinearEquation = LinearEquation <$> genSmallInteger <*> genSmallInteger
 #ifdef HAVE_COMONAD
 data LinearEquationW w = LinearEquationW (w LinearEquation) (w LinearEquation)
 
+#if MIN_VERSION_base(4,12,0)
 deriving instance (forall x. Eq x => Eq (w x)) => Eq (LinearEquationW w)
 instance (forall x. Show x => Show (w x)) => Show (LinearEquationW w) where
   show (LinearEquationW a b) = (\f -> f "")
@@ -81,6 +90,17 @@ instance (forall x. Show x => Show (w x)) => Show (LinearEquationW w) where
     . showsPrec 0 a
     . showString " else "
     . showsPrec 0 b
+#else
+instance (Eq1 w) => Eq (LinearEquationW w) where
+  (LinearEquationW fx fy) == (LinearEquationW gx gy) = liftEq (==) fx gx && liftEq (==) fy gy
+
+instance (Show1 w) => Show (LinearEquationW w) where
+  show (LinearEquationW a b) = (\f -> f "")
+    $ showString "\\x -> if odd x then "
+    . liftShowsPrec showsPrec showList 0 a
+    . showString " else "
+    . liftShowsPrec showsPrec showList 0 b
+#endif
 
 runLinearEquationW :: Comonad w
   => LinearEquationW w -> w Integer -> Integer
@@ -98,6 +118,7 @@ genLinearEquationW fgen = LinearEquationW
 
 data LinearEquationM m = LinearEquationM (m LinearEquation) (m LinearEquation)
 
+#if MIN_VERSION_base(4,12,0)
 deriving instance (forall x. Eq x => Eq (m x)) => Eq (LinearEquationM m)
 
 instance (forall x. Show x => Show (m x)) => Show (LinearEquationM m) where
@@ -106,6 +127,13 @@ instance (forall x. Show x => Show (m x)) => Show (LinearEquationM m) where
     . showsPrec 0 a
     . showString " else "
     . showsPrec 0 b
+#else
+instance (Eq1 m) => Eq (LinearEquationM m) where
+  (LinearEquationM fx fy) == (LinearEquationM gx gy) = liftEq (==) fx gx && liftEq (==) fy gy
+
+instance (Show1 m) => Show (LinearEquationM m) where
+  show (LinearEquationM fx gx) = liftShowsPrec showsPrec showList 0 fx "" ++ " " ++ liftShowsPrec showsPrec showList 0 gx "" 
+#endif
 
 runLinearEquationM :: Functor m => LinearEquationM m -> Integer -> m Integer
 runLinearEquationM (LinearEquationM e1 e2) i = if odd i

@@ -1,10 +1,19 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE CPP #-}
+
+#if MIN_VERSION_base(4,12,0)
+{-# LANGUAGE QuantifiedConstraints #-}
+#endif
 
 module Hedgehog.Classes.MonadIO (monadIOLaws) where
 
 import Control.Monad.IO.Class (MonadIO(..))
+
+#if MIN_VERSION_base(4,12,0)
+#else
+import Data.Functor.Classes (Eq1, Show1)
+#endif
 
 import Hedgehog
 import Hedgehog.Classes.Common
@@ -13,19 +22,33 @@ import Hedgehog.Classes.Common
 --
 -- [__Return__]: @'liftIO' '.' 'return'@ ≡ @'return'@
 -- [__Lift__]: @'liftIO' (m '>>=' f)@ ≡ @'liftIO' m '>>=' ('liftIO' '.' f)@
+#if MIN_VERSION_base(4,12,0)
 monadIOLaws ::
   ( MonadIO f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Laws
+#else
+monadIOLaws ::
+  ( MonadIO f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Laws
+#endif
 monadIOLaws gen = Laws "MonadIO"
   [ ("Return", monadIOReturn gen)
   , ("Lift", monadIOLift gen)
   ]
 
+#if MIN_VERSION_base(4,12,0)
 type MonadIOProp f =
   ( MonadIO f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Property
+#else
+type MonadIOProp f =
+  ( MonadIO f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Property
+#endif
 
 monadIOReturn :: forall f. MonadIOProp f
 monadIOReturn _fgen = property $ do

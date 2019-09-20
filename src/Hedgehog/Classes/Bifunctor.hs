@@ -1,11 +1,20 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE CPP #-}
+
+#if MIN_VERSION_base(4,12,0)
 {-# LANGUAGE QuantifiedConstraints #-}
+#endif
 
 module Hedgehog.Classes.Bifunctor (bifunctorLaws) where
 
 import Hedgehog
 import Hedgehog.Classes.Common
+
+#if MIN_VERSION_base(4,12,0)
+#else
+import Data.Functor.Classes (Eq2, Show2)
+#endif
 
 import Data.Bifunctor (Bifunctor(..))
 
@@ -15,11 +24,19 @@ import Data.Bifunctor (Bifunctor(..))
 -- [__First Identity__]: @'first' 'id'@ ≡ @'id'@
 -- [__Second Identity__]: @'second' 'id'@ ≡ @'id'@
 -- [__Composition__]: @'bimap' 'id' 'id'@ ≡ @'first' 'id' '.' 'second' 'id'@
+#if MIN_VERSION_base(4,12,0)
 bifunctorLaws :: forall f.
   ( Bifunctor f
   , forall x y. (Eq x, Eq y) => Eq (f x y)
   , forall x y. (Show x, Show y) => Show (f x y)
   ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Laws
+#else
+bifunctorLaws :: forall f.
+  ( Bifunctor f
+  , Eq2 f
+  , Show2 f
+  ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Laws
+#endif
 bifunctorLaws gen = Laws "Bifunctor"
   [ ("Identity", bifunctorIdentity gen)
   , ("First Identity", bifunctorFirstIdentity gen)
@@ -27,11 +44,19 @@ bifunctorLaws gen = Laws "Bifunctor"
   , ("Composition", bifunctorComposition gen) 
   ]
 
+#if MIN_VERSION_base(4,12,0)
 type BifunctorProp f =
   ( Bifunctor f
   , forall x y. (Eq x, Eq y) => Eq (f x y)
   , forall x y. (Show x, Show y) => Show (f x y)
   ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Property
+#else
+type BifunctorProp f =
+  ( Bifunctor f
+  , Eq2 f
+  , Show2 f
+  ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Property
+#endif
 
 bifunctorIdentity :: forall f. BifunctorProp f
 bifunctorIdentity fgen = property $ do

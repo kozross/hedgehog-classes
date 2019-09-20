@@ -1,11 +1,20 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE CPP #-}
+
+#if MIN_VERSION_base(4,12,0)
+{-# LANGUAGE QuantifiedConstraints #-}
+#endif
 
 module Hedgehog.Classes.MonadZip (monadZipLaws) where
 
 import Control.Arrow (Arrow(..))
 import Control.Monad.Zip (MonadZip(mzip))
+
+#if MIN_VERSION_base(4,12,0)
+#else
+import Data.Functor.Classes (Eq1, Show1)
+#endif
 
 import Hedgehog
 import Hedgehog.Classes.Common
@@ -13,18 +22,32 @@ import Hedgehog.Classes.Common
 -- | Tests the following 'MonadZip' laws:
 --
 -- [__Naturality__]: @'fmap' (f '***' g) ('mzip' ma mb)@ ≡ @'mzip' ('fmap' f ma) ('fmap' g mb)@
+#if MIN_VERSION_base(4,12,0)
 monadZipLaws ::
   ( MonadZip f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Laws
+#else
+monadZipLaws ::
+  ( MonadZip f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Laws
+#endif
 monadZipLaws gen = Laws "Monad"
   [ ("Naturality", monadZipNaturality gen)
   ]
 
+#if MIN_VERSION_base(4,12,0)
 type MonadZipProp f =
   ( MonadZip f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Property
+#else
+type MonadZipProp f =
+  ( MonadZip f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Property
+#endif
 
 monadZipNaturality :: forall f. MonadZipProp f
 monadZipNaturality fgen = property $ do

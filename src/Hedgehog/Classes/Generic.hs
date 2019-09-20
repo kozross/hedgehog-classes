@@ -2,7 +2,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE QuantifiedConstraints #-}
 
 module Hedgehog.Classes.Generic (genericLaws) where
 

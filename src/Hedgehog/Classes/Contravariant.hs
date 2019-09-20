@@ -1,10 +1,19 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE QuantifiedConstraints #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE RankNTypes #-}
+
+#if MIN_VERSION_base(4,12,0)
+{-# LANGUAGE QuantifiedConstraints #-}
+#endif
 
 module Hedgehog.Classes.Contravariant (contravariantLaws) where
 
 import Data.Functor.Contravariant (Contravariant(..))
+
+#if MIN_VERSION_base(4,12,0)
+#else
+import Data.Functor.Classes (Eq1, Show1)
+#endif
 
 import Hedgehog
 import Hedgehog.Classes.Common
@@ -13,19 +22,33 @@ import Hedgehog.Classes.Common
 --
 -- [__Identity__]: @'contramap' 'id'@ ≡ @'id'@
 -- [__Composition__]: @'contramap' f '.' 'contramap' g@ ≡ @'contramap' (g '.' f)@
+#if MIN_VERSION_base(4,12,0)
 contravariantLaws ::
   ( Contravariant f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Laws
+#else
+contravariantLaws ::
+  ( Contravariant f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Laws
+#endif
 contravariantLaws gen = Laws "Contravariant"
   [ ("Identity", contravariantIdentity gen)
   , ("Composition", contravariantComposition gen)
   ]
 
+#if MIN_VERSION_base(4,12,0)
 contravariantIdentity ::
   ( Contravariant f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Property
+#else
+contravariantIdentity ::
+  ( Contravariant f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Property
+#endif
 contravariantIdentity fgen = property $ do
   a <- forAll $ fgen genSmallInteger
   let lhs = contramap id a
@@ -42,10 +65,17 @@ contravariantIdentity fgen = property $ do
         }
   heqCtx1 lhs rhs ctx
 
+#if MIN_VERSION_base(4,12,0)
 contravariantComposition ::
   ( Contravariant f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Property
+#else
+contravariantComposition ::
+  ( Contravariant f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Property
+#endif
 contravariantComposition fgen = property $ do
   a <- forAll $ fgen genSmallInteger
   f' <- forAll genQuadraticEquation

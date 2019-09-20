@@ -1,12 +1,21 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE CPP #-}
+
+#if MIN_VERSION_base(4,12,0)
+{-# LANGUAGE QuantifiedConstraints #-}
+#endif
 
 module Hedgehog.Classes.Traversable (traversableLaws) where
 
 import Hedgehog
 import Hedgehog.Classes.Common
+
+#if MIN_VERSION_base(4,12,0)
+#else
+import Data.Functor.Classes (Eq1, Show1)
+#endif
 
 import Data.Functor.Identity
 import Data.Functor.Compose
@@ -22,10 +31,17 @@ import Data.Traversable (Traversable(..), foldMapDefault, fmapDefault)
 -- [__SequenceA Composition__]: @'sequenceA' '.' 'fmap' 'Compose'@ ≡ @'Compose' '.' 'fmap' 'sequenceA' '.' 'sequenceA'@
 -- [__FoldMap__]: @'foldMap'@ ≡ @'foldMapDefault'@
 -- [__Fmap__]: @'fmap'@ ≡ @'fmapDefault'@
+#if MIN_VERSION_base(4,12,0)
 traversableLaws ::
   ( Traversable f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Laws
+#else
+traversableLaws ::
+  ( Traversable f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Laws
+#endif
 traversableLaws gen = Laws "Foldable"
   [ ("Naturality", traversableNaturality gen)
   , ("Identity", traversableIdentity gen)
@@ -37,10 +53,17 @@ traversableLaws gen = Laws "Foldable"
   , ("fmap", traversableFmap gen)
   ]
 
+#if MIN_VERSION_base(4,12,0)
 type TraversableProp f =
   ( Traversable f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Property
+#else
+type TraversableProp f =
+  ( Traversable f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Property
+#endif
 
 traversableNaturality :: TraversableProp f
 traversableNaturality fgen = property $ do

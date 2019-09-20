@@ -1,10 +1,19 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE CPP #-}
+
+#if MIN_VERSION_base(4,12,0)
+{-# LANGUAGE QuantifiedConstraints #-}
+#endif
 
 module Hedgehog.Classes.MonadPlus (monadPlusLaws) where
 
 import Control.Monad (MonadPlus(..))
+
+#if MIN_VERSION_base(4,12,0)
+#else
+import Data.Functor.Classes (Eq1, Show1)
+#endif
 
 import Hedgehog
 import Hedgehog.Classes.Common
@@ -16,10 +25,17 @@ import Hedgehog.Classes.Common
 -- [__Associativity__]: @'mplus' a ('mplus' b c)@ ≡ @'mplus' ('mplus' a b) c@
 -- [__Left Zero__]: @'mzero' '>>=' f@ ≡ @'mzero'@
 -- [__Right Zero__]: @v '>>' 'mzero'@ ≡ @'mzero'@
+#if MIN_VERSION_base(4,12,0)
 monadPlusLaws ::
   ( MonadPlus f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Laws
+#else
+monadPlusLaws ::
+  ( MonadPlus f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Laws
+#endif
 monadPlusLaws gen = Laws "MonadPlus"
   [ ("Left Identity", monadPlusLeftIdentity gen)
   , ("Right Identity", monadPlusRightIdentity gen)
@@ -28,10 +44,17 @@ monadPlusLaws gen = Laws "MonadPlus"
   , ("Right Zero", monadPlusRightZero gen)
   ]
 
+#if MIN_VERSION_base(4,12,0)
 type MonadPlusProp f =
   ( MonadPlus f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Property
+#else
+type MonadPlusProp f =
+  ( MonadPlus f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Property
+#endif
 
 monadPlusLeftIdentity :: forall f. MonadPlusProp f
 monadPlusLeftIdentity fgen = property $ do

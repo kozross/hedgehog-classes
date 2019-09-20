@@ -1,10 +1,19 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE CPP #-}
+
+#if MIN_VERSION_base(4,12,0)
+{-# LANGUAGE QuantifiedConstraints #-}
+#endif
 
 module Hedgehog.Classes.Monad (monadLaws) where
 
 import Control.Monad (ap)
+
+#if MIN_VERSION_base(4,12,0)
+#else
+import Data.Functor.Classes (Eq1, Show1)
+#endif
 
 import Hedgehog
 import Hedgehog.Classes.Common
@@ -16,10 +25,17 @@ import Hedgehog.Classes.Common
 -- [__Associativity__]: @m '>>=' (\\x -> k x '>>=' h)@ ≡ @(m '>>=' k) '>>=' h@
 -- [__Return__]: @'return'@ ≡ @'pure'@
 -- [__Ap__]: @'ap' f x@ ≡ @f '<*>' x@
+#if MIN_VERSION_base(4,12,0)
 monadLaws ::
   ( Monad f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Laws
+#else
+monadLaws ::
+  ( Monad f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Laws
+#endif
 monadLaws gen = Laws "Monad"
   [ ("Left Identity", monadLeftIdentity gen)
   , ("Right Identity", monadRightIdentity gen)
@@ -28,10 +44,17 @@ monadLaws gen = Laws "Monad"
   , ("Ap", monadAp gen)
   ]
 
+#if MIN_VERSION_base(4,12,0)
 type MonadProp f =
   ( Monad f
   , forall x. Eq x => Eq (f x), forall x. Show x => Show (f x)
   ) => (forall x. Gen x -> Gen (f x)) -> Property
+#else
+type MonadProp f =
+  ( Monad f
+  , Eq1 f, Show1 f
+  ) => (forall x. Gen x -> Gen (f x)) -> Property
+#endif
 
 monadLeftIdentity :: forall f. MonadProp f
 monadLeftIdentity _ = property $ do

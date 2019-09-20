@@ -1,11 +1,20 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE CPP #-}
+
+#if MIN_VERSION_base(4,12,0)
 {-# LANGUAGE QuantifiedConstraints #-}
+#endif
 
 module Hedgehog.Classes.Arrow (arrowLaws) where
 
 import Hedgehog
 import Hedgehog.Classes.Common
+
+#if MIN_VERSION_base(4,12,0)
+#else
+import Data.Functor.Classes (Eq2, Show2)
+#endif
 
 import Control.Arrow(Arrow(..), (>>>))
 import Control.Category(Category(..))
@@ -21,11 +30,19 @@ import qualified Prelude
 -- [__Arrow Law 5__]: @'first' f '>>>' 'arr' 'fst'@ ≡ @'arr' 'fst' '>>>' f@
 -- [__Arrow Law 6__]: @'first' f '>>>' 'arr' ('id' '***' g)@ ≡ @'arr' ('id' '***' g) '>>>' 'first' f@
 -- [__Arrow Law 7__]: @'first' ('first' f) '>>>' 'arr' assoc@ ≡ @'arr' assoc '>>>' 'first' f, where assoc ((a,b),c) = (a,(b,c))@
+#if MIN_VERSION_base(4,12,0)
 arrowLaws :: forall f.
   ( Arrow f
   , forall x y. (Eq x, Eq y) => Eq (f x y)
   , forall x y. (Show x, Show y) => Show (f x y)
   ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Laws
+#else
+arrowLaws :: forall f.
+  ( Arrow f
+  , Eq2 f
+  , Show2 f
+  ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Laws
+#endif
 arrowLaws gen = Laws "Arrow"
   [ ("Arr Identity", arrowLaw1 gen)
   , ("Arr Composition", arrowLaw2 gen)
@@ -36,12 +53,19 @@ arrowLaws gen = Laws "Arrow"
   , ("Arrow Law 7", arrowLaw7 gen)
   ]
 
+#if MIN_VERSION_base(4,12,0)
 type ArrowProp f =
   ( Arrow f
   , forall x y. (Eq x, Eq y) => Eq (f x y)
   , forall x y. (Show x, Show y) => Show (f x y)
   ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Property
-
+#else
+type ArrowProp f =
+  ( Arrow f
+  , Eq2 f
+  , Show2 f
+  ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Property
+#endif
 arrowLaw1 :: forall f. ArrowProp f
 arrowLaw1 _ = property $ do
   arr Prelude.id `heq2` (id :: f Integer Integer)

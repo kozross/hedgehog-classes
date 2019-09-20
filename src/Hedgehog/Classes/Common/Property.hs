@@ -1,10 +1,13 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE ImplicitParams #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+
+#if MIN_VERSION_base(4,12,0)
+{-# LANGUAGE ImplicitParams #-}
 {-# LANGUAGE QuantifiedConstraints #-}
+#endif
 
 -- | This module exports hedgehog comparison tests
 --   that don't contain CallStack information, since this would
@@ -28,6 +31,12 @@ import Hedgehog.Classes.Common.Compat
 import Hedgehog.Internal.Exception (tryEvaluate)
 import Hedgehog.Internal.Property (MonadTest, liftTest, mkTest, success, discard, Failure(..), PropertyT)
 import Text.Show.Pretty (ppShow)
+
+#if MIN_VERSION_base(4,12,0)
+#else
+import Data.Functor.Classes (Eq1, Show1, Eq2, Show2)
+#endif
+
 import qualified Data.Char as Char
 import qualified Data.List as List
 
@@ -173,6 +182,7 @@ infix 4 `heq1`
 
 -- | Passes the test if the given arguments are not equal. Otherwise fails
 --   with the given 'Context'.
+#if MIN_VERSION_base(4,12,0)
 hneqCtx1 ::
      ( MonadTest m
      , HasCallStack
@@ -181,6 +191,16 @@ hneqCtx1 ::
      , forall x. Eq x => Eq (f x)
      , forall x. Show x => Show (f x)
      ) => f a -> f a -> Context -> m ()
+#else
+hneqCtx1 ::
+     ( MonadTest m
+     , HasCallStack
+     , Eq a
+     , Show a
+     , Eq1 f
+     , Show1 f
+     ) => f a -> f a -> Context -> m ()
+#endif
 hneqCtx1 x y ctx = do
   ok <- withFrozenCallStack $ evalNoSrc (x `neq1` y)
   if ok
@@ -189,6 +209,7 @@ hneqCtx1 x y ctx = do
 
 -- | Passes the test if the given arguments are not equal. Otherwise fails
 --   with 'NoContext'.
+#if MIN_VERSION_base(4,12,0)
 hneq1 ::
      ( MonadTest m
      , HasCallStack
@@ -197,10 +218,21 @@ hneq1 ::
      , forall x. Eq x => Eq (f x)
      , forall x. Show x => Show (f x)
      ) => f a -> f a -> m ()
+#else
+hneq1 ::
+     ( MonadTest m
+     , HasCallStack
+     , Eq a
+     , Show a
+     , Eq1 f
+     , Show1 f
+     ) => f a -> f a -> m ()
+#endif
 hneq1 x y = hneqCtx1 x y NoContext
 
 -- | Passes the test if the given arguments are equal. Otherwise fails
 --   with the given 'Context'.
+#if MIN_VERSION_base(4,12,0)
 heqCtx1 ::
      ( MonadTest m
      , HasCallStack
@@ -209,6 +241,16 @@ heqCtx1 ::
      , forall x. Eq x => Eq (f x)
      , forall x. Show x => Show (f x)
      ) => f a -> f a -> Context -> m ()
+#else
+heqCtx1 ::
+     ( MonadTest m
+     , HasCallStack
+     , Eq a
+     , Show a
+     , Eq1 f
+     , Show1 f
+     ) => f a -> f a -> Context -> m ()
+#endif
 heqCtx1 x y ctx = do
   ok <- withFrozenCallStack $ evalNoSrc (x `eq1` y)
   if ok
@@ -217,6 +259,7 @@ heqCtx1 x y ctx = do
 
 -- | Passes the test if the given arguments are equal. Otherwise fails
 --   with 'NoContext'.
+#if MIN_VERSION_base(4,12,0)
 heq1 ::
      ( MonadTest m
      , HasCallStack
@@ -225,12 +268,23 @@ heq1 ::
      , forall x. Eq x => Eq (f x)
      , forall x. Show x => Show (f x)
      ) => f a -> f a -> m ()
+#else
+heq1 ::
+     ( MonadTest m
+     , HasCallStack
+     , Eq a
+     , Show a
+     , Eq1 f
+     , Show1 f
+     ) => f a -> f a -> m ()
+#endif
 heq1 x y = heqCtx1 x y NoContext
 
 infix 4 `heq2`
 
 -- | Passes the test if the given arguments are equal. Otherwise fails
 --   with the given 'Context'.
+#if MIN_VERSION_base(4,12,0)
 heqCtx2 ::
      ( MonadTest m
      , HasCallStack
@@ -241,6 +295,18 @@ heqCtx2 ::
      , forall x y. (Eq x, Eq y) => Eq (f x y)
      , forall x y. (Show x, Show y) => Show (f x y)
      ) => f a b -> f a b -> Context -> m ()
+#else
+heqCtx2 ::
+     ( MonadTest m
+     , HasCallStack
+     , Eq a
+     , Eq b
+     , Show a
+     , Show b
+     , Eq2 f
+     , Show2 f
+     ) => f a b -> f a b -> Context -> m ()
+#endif
 heqCtx2 x y ctx = do
   ok <- withFrozenCallStack $ evalNoSrc (x `eq2` y)
   if ok
@@ -249,6 +315,7 @@ heqCtx2 x y ctx = do
 
 -- | Passes the test if the given arguments are equal. Otherwise fails
 --   with 'NoContext'.
+#if MIN_VERSION_base(4,12,0)
 heq2 ::
      ( MonadTest m
      , HasCallStack
@@ -259,12 +326,25 @@ heq2 ::
      , forall x y. (Eq x, Eq y) => Eq (f x y)
      , forall x y. (Show x, Show y) => Show (f x y)
      ) => f a b -> f a b -> m ()
+#else
+heq2 ::
+     ( MonadTest m
+     , HasCallStack
+     , Eq a
+     , Eq b
+     , Show a
+     , Show b
+     , Eq2 f
+     , Show2 f
+     ) => f a b -> f a b -> m ()
+#endif
 heq2 x y = heqCtx2 x y NoContext
 
 infix 4 `hneq2`
 
 -- | Passes the test if the given arguments are not equal. Otherwise fails
 --   with the given 'Context'.
+#if MIN_VERSION_base(4,12,0)
 hneqCtx2 ::
      ( MonadTest m
      , HasCallStack
@@ -275,6 +355,18 @@ hneqCtx2 ::
      , forall x y. (Eq x, Eq y) => Eq (f x y)
      , forall x y. (Show x, Show y) => Show (f x y)
      ) => f a b -> f a b -> Context -> m ()
+#else
+hneqCtx2 ::
+     ( MonadTest m
+     , HasCallStack
+     , Eq a
+     , Eq b
+     , Show a
+     , Show b
+     , Eq2 f
+     , Show2 f
+     ) => f a b -> f a b -> Context -> m ()
+#endif
 hneqCtx2 x y ctx = do
   ok <- withFrozenCallStack $ evalNoSrc (x `neq2` y)
   if ok
@@ -283,6 +375,7 @@ hneqCtx2 x y ctx = do
 
 -- | Passes the test if the given arguments are not equal. Otherwise fails
 --   with 'NoContext'.
+#if MIN_VERSION_base(4,12,0)
 hneq2 ::
      ( MonadTest m
      , HasCallStack
@@ -293,6 +386,18 @@ hneq2 ::
      , forall x y. (Eq x, Eq y) => Eq (f x y)
      , forall x y. (Show x, Show y) => Show (f x y)
      ) => f a b -> f a b -> m ()
+#else
+hneq2 ::
+     ( MonadTest m
+     , HasCallStack
+     , Eq a
+     , Eq b
+     , Show a
+     , Show b
+     , Eq2 f
+     , Show2 f
+     ) => f a b -> f a b -> m ()
+#endif
 hneq2 x y = hneqCtx2 x y NoContext
 
 -- | Passes the test if the LHS implies the RHS. Otherwise fails with

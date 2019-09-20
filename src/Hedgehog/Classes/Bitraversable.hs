@@ -1,11 +1,20 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE CPP #-}
+
+#if MIN_VERSION_base(4,12,0)
 {-# LANGUAGE QuantifiedConstraints #-}
+#endif
 
 module Hedgehog.Classes.Bitraversable (bitraversableLaws) where
 
 import Hedgehog
 import Hedgehog.Classes.Common
+
+#if MIN_VERSION_base(4,12,0)
+#else
+import Data.Functor.Classes (Eq2, Show2)
+#endif
 
 import Data.Bitraversable (Bitraversable(..))
 import Data.Functor.Compose (Compose(..))
@@ -19,22 +28,38 @@ import qualified Control.Monad.Trans.Writer.Lazy as WL
 -- [__Naturality__]: @'bitraverse' (t '.' f) (t '.' g)@ ≡ @t '.' 'bitraverse' f g, for every applicative transformation t@
 -- [__Identity__]: @'bitraverse' 'Identity' 'Identity'@ ≡ @'Identity'@
 -- [__Composition__]: @'Compose' '.' 'fmap' ('bitraverse' g1 g2) '.' 'bitraverse' f1 f2@ ≡ @'bitraverse' ('Compose' '.' 'fmap' g1 '.' f1) ('Compose' '.' 'fmap' g2 '.' f2)@
+#if MIN_VERSION_base(4,12,0)
 bitraversableLaws :: forall f.
   ( Bitraversable f
   , forall x y. (Eq x, Eq y) => Eq (f x y)
   , forall x y. (Show x, Show y) => Show (f x y)
   ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Laws
+#else
+bitraversableLaws :: forall f.
+  ( Bitraversable f
+  , Eq2 f
+  , Show2 f
+  ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Laws
+#endif
 bitraversableLaws gen = Laws "Bitraversable"
   [ ("Naturality", bitraversableNaturality gen)
   , ("Identity", bitraversableIdentity gen)
   , ("Composition", bitraversableComposition gen) 
   ]
 
+#if MIN_VERSION_base(4,12,0)
 type BitraversableProp f =
   ( Bitraversable f
   , forall x y. (Eq x, Eq y) => Eq (f x y)
   , forall x y. (Show x, Show y) => Show (f x y)
   ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Property
+#else
+type BitraversableProp f =
+  ( Bitraversable f
+  , Eq2 f
+  , Show2 f
+  ) => (forall x y. Gen x -> Gen y -> Gen (f x y)) -> Property
+#endif
 
 bitraversableNaturality :: forall f. BitraversableProp f
 bitraversableNaturality fgen = property $ do
